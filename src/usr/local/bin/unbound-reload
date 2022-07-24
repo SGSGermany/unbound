@@ -1,0 +1,40 @@
+#!/bin/sh
+# Unbound
+# A container running Unbound, a recursive and caching DNS resolver.
+#
+# Copyright (c) 2022  SGS Serious Gaming & Simulations GmbH
+#
+# This work is licensed under the terms of the MIT license.
+# For a copy, see LICENSE file or <https://opensource.org/licenses/MIT>.
+#
+# SPDX-License-Identifier: MIT
+# License-Filename: LICENSE
+
+set -eu -o pipefail
+
+UNBOUND_PID_FILE="/run/unbound.pid"
+
+if [ ! -e "$UNBOUND_PID_FILE" ]; then
+    echo "Unbound is apparently not running: PID file '$UNBOUND_PID_FILE' not found" >&2
+    exit 2
+fi
+
+[ -f "$UNBOUND_PID_FILE" ] || { echo "Unable to read PID file '$UNBOUND_PID_FILE': Not a file" >&2; exit 1; }
+[ -r "$UNBOUND_PID_FILE" ] || { echo "Unable to read PID file '$UNBOUND_PID_FILE': Permission denied" >&2; exit 1; }
+
+UNBOUND_PID="$(cat "$UNBOUND_PID_FILE")"
+if [ "$(echo "$UNBOUND_PID" | grep '^[1-9][0-9]*$')" != "$UNBOUND_PID" ]; then
+    echo "Unable to read PID file '$UNBOUND_PID_FILE': Invalid file format" >&2
+    exit 1
+fi
+
+UNBOUND_PID_CMD="$(ps -o pid=,comm= | sed -ne "s/^ *$UNBOUND_PID \(.*\)$/\1/p")"
+if [ -z "$UNBOUND_PID_CMD" ]; then
+    echo "Unbound is apparently not running: Process #$UNBOUND_PID not found" >&2
+    exit 3
+elif [ "$UNBOUND_PID_CMD" != "unbound" ]; then
+    echo "Unbound is apparently not running: Process #$UNBOUND_PID is not \`unbound\`, but \`$UNBOUND_PID_CMD\`" >&2
+    exit 3
+fi
+
+kill -HUP "$UNBOUND_PID"
