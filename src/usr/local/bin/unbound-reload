@@ -17,10 +17,13 @@ UNBOUND_PID_FILE="/run/unbound.pid"
 if [ ! -e "$UNBOUND_PID_FILE" ]; then
     echo "Unbound is apparently not running: PID file '$UNBOUND_PID_FILE' not found" >&2
     exit 2
+elif [ ! -f "$UNBOUND_PID_FILE" ]; then
+    echo "Unable to read PID file '$UNBOUND_PID_FILE': Not a file" >&2
+    exit 1
+elif [ ! -r "$UNBOUND_PID_FILE" ]; then
+    echo "Unable to read PID file '$UNBOUND_PID_FILE': Permission denied" >&2
+    exit 1
 fi
-
-[ -f "$UNBOUND_PID_FILE" ] || { echo "Unable to read PID file '$UNBOUND_PID_FILE': Not a file" >&2; exit 1; }
-[ -r "$UNBOUND_PID_FILE" ] || { echo "Unable to read PID file '$UNBOUND_PID_FILE': Permission denied" >&2; exit 1; }
 
 UNBOUND_PID="$(cat "$UNBOUND_PID_FILE")"
 if [ "$(echo "$UNBOUND_PID" | grep '^[1-9][0-9]*$')" != "$UNBOUND_PID" ]; then

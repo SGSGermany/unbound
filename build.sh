@@ -13,8 +13,7 @@
 ROOT_HINTS="https://www.internic.net/domain/named.cache"
 
 set -eu -o pipefail
-export LC_ALL=C
-shopt -u nullglob
+export LC_ALL=C.UTF-8
 
 [ -v CI_TOOLS ] && [ "$CI_TOOLS" == "SGSGermany" ] \
     || { echo "Invalid build environment: Environment variable 'CI_TOOLS' not set or invalid" >&2; exit 1; }
@@ -52,7 +51,7 @@ cmd buildah run "$CONTAINER" -- \
     chown unbound:unbound "/var/lib/unbound"
 
 cmd buildah run "$CONTAINER" -- \
-    curl -L -o "/etc/unbound/root.hints" \
+    curl -L -f -o "/etc/unbound/root.hints" \
         "$ROOT_HINTS"
 
 pkg_remove "$CONTAINER" .fetch-deps
@@ -60,6 +59,10 @@ pkg_remove "$CONTAINER" .fetch-deps
 VERSION="$(pkg_version "$CONTAINER" unbound)"
 
 cleanup "$CONTAINER"
+
+cmd buildah config \
+    --env UNBOUND_VERSION="$VERSION" \
+    "$CONTAINER"
 
 cmd buildah config \
     --port "53/udp" \
